@@ -7,7 +7,7 @@
 
 `$ kontena stack install kontena/kong`
 
-This will deploy Kong API gateway with PostgreSQL and optional [Kong Dashboard](https://github.com/PGBI/kong-dashboard) to your Kontena grid. After it is deployed you can access the Dashboard Admin API with [Kontena VPN](http://kontena.io/docs/using-kontena/vpn-access.html):
+This will deploy Kong API gateway with PostgreSQL and optional [Kong Dashboard](https://github.com/PGBI/kong-dashboard) to your Kontena grid. After it is deployed you can access the Dashboard and Admin API with [Kontena VPN](http://kontena.io/docs/using-kontena/vpn-access.html):
 - http://kong.${GRID}.kontena.local:8001
 - http://dashboard.kong.${GRID}.kontena.local:8080
 
