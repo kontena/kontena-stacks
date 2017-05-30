@@ -1,0 +1,15 @@
+stack: kontena/redis
+description: Stateful Redis database
+version: 0.1.0
+expose: db
+variables:
+  version:
+    type: string
+    default: 3.2-alpine
+    from:
+      env: VERSION
+      prompt: Redis version?
+services:
+  db:
+    image: 'redis:${version}'
+    stateful: true
