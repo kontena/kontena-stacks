@@ -1,0 +1,33 @@
+stack: kontena/harbur-rabbitmq-cluster
+version: 0.2.7
+description: RabbitMQ cluster based on harbur/rabbitmq-cluster image
+expose: node
+variables:
+  cookie:
+    type: string
+    from:
+      vault: RABBITMQ_COOKIE
+      random_string: 12
+    to:
+      vault: RABBITMQ_COOKIE
+services:
+  seed:
+    image: harbur/rabbitmq-cluster
+    instances: 1
+    stateful: true
+    secrets:
+      - secret: RABBITMQ_COOKIE
+        name: ERLANG_COOKIE
+        type: env
+  node:
+    image: harbur/rabbitmq-cluster
+    instances: 2
+    stateful: true
+    secrets:
+      - secret: RABBITMQ_COOKIE
+        name: ERLANG_COOKIE
+        type: env
+    environment:
+      - CLUSTER_WITH=seed-1
+    depends_on:
+      - seed
