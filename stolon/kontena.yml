@@ -1,5 +1,5 @@
 stack: kontena/stolon
-version: 0.1.0
+version: 0.1.1
 description: PostgreSQL cluster for high-availability
 expose: proxy
 variables:
@@ -22,6 +22,16 @@ variables:
       random_string: 24
     to:
       vault: ${STACK}-su-password
+  sentinel_mem_limit:
+    type: integer
+    default: 64
+    from:
+      prompt: Sentinel mem_limit (megabytes)
+  proxy_mem_limit:
+    type: integer
+    default: 128
+    from:
+      prompt: Proxy mem_limit (megabytes)
 services:
   keeper:
     image: sorintlab/stolon:v0.6.0-pg9.6
@@ -58,6 +68,7 @@ services:
     image: sorintlab/stolon:v0.6.0-pg9.6
     command: gosu stolon stolon-sentinel
     instances: 3
+    mem_limit: "{{ sentinel_mem_limit }}m"
     affinity:
       - {{ affinity }}
     environment:
@@ -71,6 +82,7 @@ services:
     image: sorintlab/stolon:v0.6.0-pg9.6
     command: gosu stolon stolon-proxy
     instances: 3
+    mem_limit: "{{ proxy_mem_limit }}m"
     affinity:
       - {{ affinity }}
     deploy:
