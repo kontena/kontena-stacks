@@ -1,0 +1,118 @@
+stack: kontena/redis-sentinel
+version: 0.1.0
+expose: lb
+description: Redis Sentinel Cluster with a Loadbalancer
+variables:
+  node_password:
+    type: string
+    from:
+      vault: ${STACK}-password
+      random_string: 16
+    to:
+      vault: ${STACK}-password
+  node_opts:
+    type: string
+    required: false
+    from:
+      prompt: "Additional redis-server command-line arguments (example: --appendonly yes )"
+  node_mem_limit:
+    type: integer
+    default: 256
+    from:
+      prompt: "Node instance memory limit (MB)"
+  monitor_mem_limit:
+    type: integer
+    default: 128
+    from:
+      prompt: "Monitor instance memory limit (MB)"
+  lb_mem_limit:
+    type: integer
+    default: 128
+    from:
+      prompt: "Loadbalancer instance memory limit (MB)"
+  node_max_memory:
+    type: integer
+    from:
+      evaluate: "${node_mem_limit} * 1024 * 1024 * 0.95"
+  node_data_name:
+    type: string
+    default: "${STACK}-data"
+    from:
+      prompt: Redis data volume name
+  monitor_data_name:
+    type: string
+    default: "${STACK}-monitor"
+    from:
+      prompt: Redis monitor volume name
+services:
+  node:
+    image: redis:3.0-alpine
+    instances: 5
+    stateful: true
+    command: "/bin/sh -c 'redis-server --maxmemory {{ node_max_memory }} --requirepass $$REDIS_SENTINEL_PASSWORD --masterauth $$REDIS_SENTINEL_PASSWORD {{ node_opts }}'"
+    mem_limit: "{{ node_mem_limit }}m"
+    health_check:
+      protocol: tcp
+      port: 6379
+      initial_delay: 60
+      interval: 60
+    secrets:
+      - secret: ${STACK}-password
+        name: REDIS_SENTINEL_PASSWORD
+        type: env
+    environment:
+      KONTENA_LB_MODE: tcp
+      KONTENA_LB_EXTERNAL_PORT: 6379
+      KONTENA_LB_INTERNAL_PORT: 6379
+      KONTENA_LB_CUSTOM_SETTINGS: |
+        option tcp-check
+        tcp-check connect
+        tcp-check send AUTH\ {{ node_password }}\r\n
+        tcp-check expect string +OK
+        tcp-check send PING\r\n
+        tcp-check expect string +PONG
+        tcp-check send info\ replication\r\n
+        tcp-check expect string role:master
+        tcp-check send QUIT\r\n
+        tcp-check expect string +OK
+    links:
+      - lb
+    volumes:
+      - node-data:/data
+  monitor:
+    image: kontena/redis-sentinel:3.0-alpine
+    instances: 5
+    mem_limit: "{{ monitor_mem_limit }}m"
+    deploy:
+      wait_for_port: 26379
+    health_check:
+      protocol: tcp
+      port: 26379
+      initial_delay: 300
+      interval: 60
+    secrets:
+      - secret: ${STACK}-password
+        name: PASSWORD
+        type: env
+    environment:
+      - MASTER_NAME=${STACK}
+      - QUORUM=3
+      - DOWN_AFTER=5000
+      - FAILOVER_TIMEOUT=30000
+      - MASTER=node-1
+      - SLAVES=node-2;node-3;node-4;node-5
+    depends_on:
+      - node
+    volumes:
+      - monitor-data:/data
+  lb:
+    image: kontena/lb:latest
+    instances: 2
+    mem_limit: "{{ lb_mem_limit }}m"
+volumes:
+  node-data:
+    external:
+      name: {{ node_data_name }}
+  monitor-data:
+    external:
+      name: {{ monitor_data_name }}
