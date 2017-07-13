@@ -1,0 +1,85 @@
+stack: kontena/cockroachdb
+version: 0.1.0
+description: CockroachDB is an open source, survivable, strongly consistent, scale-out SQL database.
+expose: lb
+variables:
+  bootstrap:
+    type: boolean
+    default: false
+    from:
+      prompt: Bootstrap new cluster?
+  version:
+    type: string
+    default: "1.0.3"
+    from:
+      prompt: Version
+  cluster_size:
+    type: integer
+    default: 3
+    from:
+      prompt: Cluster size
+  memory_limit:
+    type: integer
+    default: 512
+    from:
+      prompt: Node memory limit (MB)
+  affinity:
+    type: string
+    default: label!=no-cockroach
+    from:
+      prompt: Affinity
+  cache_size:
+    type: integer
+    from:
+      evaluate: ${memory_limit} * 0.25
+services:
+  seed:
+    image: "cockroachdb/cockroach:v{{ version}}"
+    stateful: true
+    # {% if bootstrap %}
+    instances: 1
+    # {% else %}
+    instances: 0
+    # {% endif %}
+    command: "start --logtostderr --insecure --cache {{ cache_size }}MB"
+    mem_limit: "{{ memory_limit }}m"
+    affinity:
+      - {{ affinity }}
+    volumes:
+      - data:/cockroach/cockroach-data
+  node:
+    image: "cockroachdb/cockroach:v{{ version}}"
+    stateful: true
+    instances: {{ cluster_size }}
+    # {% if bootstrap %}
+    command: "start --logtostderr --insecure --cache {{ cache_size }}MB --join seed"
+    # {% else %}
+    command: "start --logtostderr --insecure --cache {{ cache_size }}MB --join node"
+    # {% endif %}
+    mem_limit: "{{ memory_limit }}m"
+    deploy:
+      wait_for_port: 26257
+    affinity:
+      - {{ affinity }}
+    environment:
+      KONTENA_LB_EXTERNAL_PORT: 26257
+      KONTENA_LB_INTERNAL_PORT: 26257
+      KONTENA_LB_MODE: tcp
+    health_check:
+      protocol: tcp
+      port: 26257
+    volumes:
+      - data:/cockroach/cockroach-data
+    depends_on:
+      - seed
+    links:
+      - lb
+  lb:
+    image: kontena/lb:latest
+    instances: 2
+    affinity:
+      - {{ affinity }}
+volumes:
+  data:
+    external:
+      name: ${STACK}-data
