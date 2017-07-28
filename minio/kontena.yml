@@ -1,0 +1,72 @@
+stack: kontena/minio
+version: 0.2.0
+description: Minio is a distributed object storage server built for cloud applications and devops
+variables:
+  affinity:
+    type: string
+    default: label!=no-minio
+    from:
+      prompt: Affinity
+  lb_service:
+    type: string
+    from:
+      service_link:
+        prompt: Pick a loadbalancer
+        image: kontena/lb
+  lb_domain:
+    type: string
+    from:
+      prompt: Virtual host (domain) name for minio
+  memory_limit:
+    type: integer
+    default: 512
+    from:
+      prompt: Minio server memory limit (MB)
+  cache_size:
+    type: integer
+    from:
+      evaluate: ${memory_limit} * 0.8
+  access_key:
+    type: string
+    from:
+      vault: ${STACK}-access-key
+      random_string: 20
+    to:
+      vault: ${STACK}-access-key
+  secret_key:
+    type: string
+    from:
+      vault: ${STACK}-secret-key
+      random_string: 20
+    to:
+      vault: ${STACK}-secret-key
+services:
+  server:
+    image: minio/minio:latest
+    stateful: true
+    instances: 4
+    command: server http://server-1/export/1/ http://server-2/export/2/ http://server-3/export/3/ http://server-4/export/4/
+    mem_limit: "{{ memory_limit }}m"
+    health_check:
+      protocol: tcp
+      port: 9000
+      initial_delay: 30
+    secrets:
+      - secret: ${STACK}-access-key
+        name: MINIO_ACCESS_KEY
+        type: env
+      - secret: ${STACK}-secret-key
+        name: MINIO_SECRET_KEY
+        type: env
+    environment:
+      - MINIO_CACHE_SIZE={{ cache_size }}MB
+      - KONTENA_LB_INTERNAL_PORT=9000
+      - KONTENA_LB_VIRTUAL_HOSTS={{ lb_domain }}
+    volumes:
+      - export:/export
+    links:
+      - "{{ lb_service }}"
+volumes:
+  export:
+    external:
+      name: ${STACK}-export
