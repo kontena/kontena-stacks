@@ -1,0 +1,30 @@
+stack: kontena/fluentd-gelf
+version: 0.1.0
+description: Fluentd to GELF Forwarder
+expose: agent
+variables:
+  host:
+    type: string
+    default: graylog.${GRID}.kontena.local
+    from:
+      prompt: GELF host
+  port:
+    type: integer
+    default: 12201
+    from:
+      prompt: GELF port
+  protocol:
+    type: string
+    default: udp
+    from:
+      prompt: GELF protocol
+services:
+  agent:
+    image: kontena/fluentd-gelf:latest
+    instances: 2
+    environment:
+      - GELF_HOST={{ host }}
+      - GELF_PORT={{ port }}
+      - GELF_PROTOCOL={{ protocol }}
+    mem_limit: 128m
+    cpu_shares: 256

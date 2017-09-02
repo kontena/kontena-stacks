@@ -1,0 +1,46 @@
+stack: kontena/fluentd-splunkhec
+version: 0.1.0
+description: Fluentd to Splunk (HTTP Event Collector) Forwarder
+expose: agent
+variables:
+  host:
+    type: string
+    from:
+      prompt: Splunk hostname
+  protocol:
+    type: string
+    default: http
+    from:
+      prompt: Splunk protocol
+  port:
+    type: string
+    default: 8080
+    from:
+      prompt: Splunk port
+  token:
+    type: string
+    from:
+      vault: ${STACK}-token
+      prompt: Splunk token
+    to:
+      vault: ${STACK}-token
+  index:
+    type: string
+    default: main
+    from:
+      prompt: Index
+  source:
+    type: string
+    default: "${GRID}"
+    from:
+      prompt: Source
+services:
+  agent:
+    image: kontena/fluentd-splunkhec:latest
+    instances: 2
+    secrets:
+      - secret: ${STACK}-token
+        name: SPLUNK_TOKEN
+        type: env
+    mem_limit: 128m
+    cpu_shares: 256
