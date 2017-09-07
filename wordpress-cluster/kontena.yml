@@ -1,0 +1,164 @@
+stack: kontena/wordpress-cluster
+version: 0.2.0
+description: Example WordPress cluster stack
+variables:
+  loadbalancer:
+    type: string
+    required: true
+    from:
+      env: LOADBALANCER
+      service_link:
+        prompt: Choose a loadbalancer
+        image: kontena/lb
+  virtual_host:
+    type: string
+    required: false
+    from:
+      env: VIRTUALHOST
+      prompt: Virtualhost (leave blank if none)
+  mariadb_affinity:
+    type: string
+    default: label!=no-mariadb
+    from:
+      env: MARIADB_AFFINITY
+      prompt: Affinity rule for MariaDB Galera
+  wp_affinity:
+    type: string
+    default: label!=no-wordpress
+    from:
+      env: WORDPRESS_AFFINITY
+      prompt: Affinity rule for WordPress
+  mysql_root_pwd:
+    type: string
+    from:
+      vault: ${STACK}-mysql-pwd
+      random_string: 24
+    to:
+      vault: ${STACK}-mysql-pwd
+  mysql_xtrabackup_pwd:
+    type: string
+    from:
+      vault: ${STACK}-xtrabackup-pwd
+      random_string: 24
+    to:
+      vault: ${STACK}-xtrabackup-pwd
+  resilio_secret:
+    type: string
+    from:
+      vault: ${STACK}-resilio-secret
+      env: RESILIO_SECRET
+      prompt: Sync secret (generate with 'docker run -it --rm nimmis/resilio-sync rslsync --generate-secret')
+    to:
+      vault: ${STACK}-resilio-secret
+  wp_secret:
+    type: string
+    from:
+      vault: ${STACK}-secret
+      env: WORDPRESS_SECRET
+      random_string: 24
+    to:
+      vault: ${STACK}-secret
+
+services:
+  mariadb-lb:
+    image: kontena/lb:latest
+    instances: 2
+    mem_limit: 128m
+    affinity:
+      - "{{ mariadb_affinity }}"
+  mariadb-galera:
+    image: severalnines/mariadb:latest
+    instances: 3
+    affinity:
+      - "{{ mariadb_affinity }}"
+    deploy:
+      wait_for_port: 3306
+    secrets:
+      - secret: ${STACK}-mysql-pwd
+        name: MYSQL_ROOT_PASSWORD
+        type: env
+      - secret: ${STACK}-xtrabackup-pwd
+        name: XTRABACKUP_PASSWORD
+        type: env
+    environment:
+      DISCOVERY_SERVICE: etcd.kontena.local:2379
+      CLUSTER_NAME: "${STACK}"
+      KONTENA_LB_MODE: tcp
+      KONTENA_LB_INTERNAL_PORT: 3306
+      KONTENA_LB_EXTERNAL_PORT: 3306
+    links:
+      - mariadb-lb
+    volumes:
+      - mysql:/var/lib/mysql
+
+  resilio:
+    image: nimmis/resilio-sync:latest
+    mem_limit: 256m
+    deploy:
+      strategy: daemon
+    affinity:
+      - "{{ wp_affinity }}"
+    secrets:
+      - secret: ${STACK}-resilio-secret
+        name: RSLSYNC_SECRET
+        type: env
+    volumes:
+      - wordpress:/data
+
+  wordpress:
+    image: wordpress:4.8
+    instances: 3
+    mem_limit: 512m
+    affinity:
+      - "{{ wp_affinity }}"
+    secrets:
+      - secret: ${STACK}-mysql-pwd
+        name: WORDPRESS_DB_PASSWORD
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_AUTH_KEY
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_SECURE_AUTH_KEY
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_LOGGED_IN_KEY
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_NONCE_KEY
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_AUTH_SALT
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_SECURE_AUTH_SALT
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_LOGGED_IN_SALT
+        type: env
+      - secret: ${STACK}-secret
+        name: WORDPRESS_NONCE_SALT
+        type: env
+    environment:
+      KONTENA_LB_MODE: http
+      KONTENA_LB_BALANCE: source
+      KONTENA_LB_INTERNAL_PORT: 80
+      # {% if virtual_host %}
+      KONTENA_LB_VIRTUAL_HOSTS: "{{ virtual_host }}"
+      # {% endif %}
+      WORDPRESS_DB_HOST: mariadb-lb
+    volumes:
+      - wordpress:/var/www/html
+    depends_on:
+      - mariadb-galera
+      - resilio
+    links:
+      - {{ loadbalancer }}
+
+volumes:
+  mysql: # scope=instance
+    external:
+      name: ${STACK}-mysql
+  wordpress: # scope=stack
+    external:
+      name: ${STACK}-data
