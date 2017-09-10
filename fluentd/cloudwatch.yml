@@ -1,0 +1,51 @@
+stack: kontena/fluentd-cloudwatch
+version: 0.1.0
+description: Fluentd to AWS CloudWatch Logs Forwarder
+expose: agent
+variables:
+  region:
+    type: string
+    default: us-east-1
+    from:
+      prompt: AWS region
+  aws_access_key_id:
+    type: string
+    from:
+      vault: ${STACK}-aws-access-key-id
+      prompt: AWS access key id
+    to:
+      vault: ${STACK}-aws-access-key-id
+  aws_secret_access_key:
+    type: string
+    from:
+      vault: ${STACK}-aws-secret-access-key
+      prompt: AWS secret access key
+    to:
+      vault: ${STACK}-aws-secret-access-key
+  log_group:
+    type: string
+    default: "${GRID"
+    from:
+      prompt: Cloudwatch log group
+  log_stream:
+    type: string
+    default: fluent
+    from:
+      prompt: Cloudwatch log stream
+services:
+  agent:
+    image: kontena/fluentd-cloudwatch:latest
+    instances: 2
+    secrets:
+      - secret: ${STACK}-aws-access-key-id
+        name: AWS_ACCESS_KEY_ID
+        type: env
+      - secret: ${STACK}-aws-secret-access-key
+        name: AWS_SECRET_ACCESS_KEY
+        type: env
+    environment:
+      AWS_REGION: "{{ region }}"
+      LOG_GROUP: "{{ log_group }}"
+      LOG_STREAM: "{{ log_stream }}"
+    mem_limit: 128m
+    cpu_shares: 256

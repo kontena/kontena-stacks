@@ -1,0 +1,22 @@
+stack: kontena/fluentd-loggly
+version: 0.1.0
+description: Fluentd to Loggly Forwarder
+expose: agent
+variables:
+  token:
+    type: string
+    from:
+      vault: ${STACK}-token
+      prompt: Loggly token
+    to:
+      vault: ${STACK}-token
+services:
+  agent:
+    image: kontena/fluentd-loggly:latest
+    instances: 2
+    secrets:
+      - secret: ${STACK}-token
+        name: LOGGLY_TOKEN
+        type: env
+    mem_limit: 128m
+    cpu_shares: 256
