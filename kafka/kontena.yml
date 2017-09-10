@@ -1,0 +1,81 @@
+---
+stack: kontena/kafka-cluster
+version: 1.0.0
+description: Kafka cluster based on Harvard Hypermap
+expose: kafka
+variables:
+  num_zookeeper_instances:
+    type: integer
+    min: 1
+    default: 3
+    from:
+      env: NUM_ZOOKEEPER_INSTANCES
+      prompt: number of instances of Zookeeper?
+  num_kafka_instances:
+    type: integer
+    min: 1
+    default: 3
+    from:
+      env: NUM_KAFKA_INSTANCES
+      prompt: number of instances of Kafka?
+  expose_kafka_port:
+    type: boolean
+    default: false
+    from:
+      env: EXPOSE_KAFKA_PORT
+      prompt: expose Kafka port to host?
+
+services:
+  zookeeper:
+    image: harvardcga/zookeeper:3.4
+    stateful: true
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper
+    instances: ${num_zookeeper_instances}
+    deploy:
+      wait_for_port: 2181
+      min_health: 0.5
+    environment:
+      # {% assign zookeeper_servers = "" %}
+      # {% for i in (1..num_zookeeper_instances) %}
+      # {%   capture server %}server.{{ i }}=zookeeper-{{ i }}.{{ STACK }}.{{ GRID }}.kontena.local:2888:3888 {% endcapture %}
+      # {%   assign zookeeper_servers = zookeeper_servers | append: server %}
+      # {% endfor %}
+      ZOO_SERVERS: {{ zookeeper_servers }}
+      ZOO_AUTOPURGE_PURGE_INTERVAL: 24
+      JMXPORT: 9999
+      SERVER_JVMFLAGS: -Xmx500M -XX:+CrashOnOutOfMemoryError
+    health_check:
+      protocol: tcp
+      port: 2181
+      timeout: 10
+      interval: 300
+      initial_delay: 10
+
+  kafka:
+    image: harvardcga/cp-kafka:3.1.2-hcga2
+    links:
+      - zookeeper
+    stateful: true
+    volumes:
+      - kafka-data:/var/lib/kafka
+    instances: ${num_kafka_instances}
+    # {% if expose_kafka_port %}
+    ports:
+      - "9092:9092"
+    # {% endif %}
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka.${STACK}.${GRID}.kontena.local:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper
+      KAFKA_DELETE_TOPIC_ENABLE: true
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+      KAFKA_COMPRESSION_TYPE: lz4
+      KAFKA_JMX_PORT: 9999
+
+volumes:
+  zookeeper-data:
+    external:
+      name: ${STACK}-zookeeper-data
+  kafka-data:
+    external:
+      name: ${STACK}-kafka-data
