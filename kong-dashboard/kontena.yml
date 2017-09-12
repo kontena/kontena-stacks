@@ -1,0 +1,7 @@
+stack: kontena/kong-dashboard
+version: 0.2.0
+description: Dashboard for managing Kong gateway
+expose: ui
+services:
+  ui:
+    image: pgbi/kong-dashboard

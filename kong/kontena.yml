@@ -1,5 +1,5 @@
 stack: kontena/kong
-version: 0.1.5
+version: 0.2.0
 description: Kong API gateway with PostgreSQL
 expose: api
 variables:
@@ -30,7 +30,7 @@ variables:
     from:
       vault: ${STACK}-postgres-password
       env: PG_PASSWORD
-      prompt: Postgres password? (or emtpy to generate random)
+      prompt: Postgres password? (or empty to generate random)
       random_string: 32
     to:
       vault: ${STACK}-postgres-password
@@ -57,21 +57,31 @@ variables:
     from:
       env: VIRTUAL_HOSTS
       prompt: Domain names that point to your APIs (comma-separated list)
-  version:
-    type: string
-    default: 0.10.2
-    from:
-      env: KONG_VERSION
-      prompt: Kong version to use
-  bundle_dashboard:
-    type: boolean
-    default: true
-    from:
-      env: BUNDLE_DASHBOARD
-      prompt: Deploy Kong Dashboard?
 services:
+  migrations:
+    image: "kong:0.11-alpine"
+    environment:
+      - KONG_DATABASE=postgres
+      # {% if bundle_postgres %}
+      - KONG_PG_HOST=postgres.${STACK}.${GRID}.kontena.local
+      - KONG_PG_DATABASE=kong
+      - KONG_PG_USER=kong
+      # {% else %}
+      - KONG_PG_HOST=${postgres_host}
+      - KONG_PG_USER=${postgres_user}
+      - KONG_PG_DATABASE=${postgres_db}
+      # {% endif %}
+    secrets:
+      - secret: ${STACK}-postgres-password
+        name: KONG_PG_PASSWORD
+        type: env
+    command: sh -c "kong migrations up && tail -f /dev/null"
+    # {% if bundle_postgres %}
+    depends_on:
+      - postgres
+    # {% endif %}
   api:
-    image: "kontena/kong:${version}"
+    image: "kong:0.11-alpine"
     environment:
       - KONG_DATABASE=postgres
       # {% if bundle_postgres %}
@@ -93,7 +103,10 @@ services:
       - secret: ${STACK}-postgres-password
         name: KONG_PG_PASSWORD
         type: env
+    depends_on:
+      - migrations
   # {% if bundle_postgres %}
+      - postgres
   postgres:
     image: postgres:9.6-alpine
     stateful: true
@@ -104,8 +117,4 @@ services:
       - secret: ${STACK}-postgres-password
         name: POSTGRES_PASSWORD
         type: env
-  # {% endif %}
-  # {% if bundle_dashboard %}
-  dashboard:
-    image: pgbi/kong-dashboard
   # {% endif %}
