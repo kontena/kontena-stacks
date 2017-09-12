@@ -15,3 +15,8 @@ Install Kibana stack
 This will deploy Kibana and connect it to Elasticsearch.
 
 
+## Logging in
+
+Kibana is now running behind the loadbalancer, so you should access it using the virtual host you gave during the stack install.
+
+To log into Kibana use username `elastic`. The password is in Kontena secrets vault (auto-generated during Elasticsearch stack installation) and can be read (with sufficient permissions) with `kontena vault read --value ELASTIC_PASSWORD`
