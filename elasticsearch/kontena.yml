@@ -1,0 +1,78 @@
+stack: kontena/elasticsearch
+version: 0.1.0
+description: Elasticsearch
+expose: elastic
+variables:
+  instances:
+    type: integer
+    from:
+      prompt: How many instances?
+  reset_passwords:
+    type: boolean
+    from:
+      prompt: Reset all default passwords during initial stack installation?
+  elastic_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: ELASTIC_PASSWORD
+      random_string: 12
+    to:
+      vault: ELASTIC_PASSWORD
+  kibana_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: KIBANA_PASSWORD
+      random_string: 12
+    to:
+      vault: KIBANA_PASSWORD
+  logstash_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: LOGSTASH_PASSWORD
+      random_string: 12
+    to:
+      vault: LOGSTASH_PASSWORD
+
+services:
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.5.2
+    instances: {{ instances }}
+    stateful: true
+    mem_limit: 3g
+    environment:
+      cluster.name: ${STACK}
+      network.host: _ethwe_
+      discovery.zen.ping.unicast.hosts: elastic
+    hooks:
+      post_start:
+        # {% if reset_passwords %}
+        - cmd: while ! (echo > /dev/tcp/$$HOSTNAME/9200) >/dev/null 2>&1; do sleep 1; done
+          name: Wait for elastic to startup
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:changeme -XPOST -d '{"password":"'"$$ELASTIC_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/elastic/_password
+          name: Change default user password
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:$$ELASTIC_PASSWORD -XPOST -d '{"password":"'"$$KIBANA_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/kibana/_password
+          name: Change kibana user password
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:$$ELASTIC_PASSWORD -XPOST -d '{"password":"'"$$LOGSTASH_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/logstash_system/_password
+          name: Change logstash_system user password
+          instances: {{ instances }}
+          oneshot: true
+        # {% endif %}
+    secrets:
+      - secret: ELASTIC_PASSWORD
+        name: ELASTIC_PASSWORD
+        type: env
+      - secret: KIBANA_PASSWORD
+        name: KIBANA_PASSWORD
+        type: env
+      - secret: LOGSTASH_PASSWORD
+        name: LOGSTASH_PASSWORD
+        type: env
