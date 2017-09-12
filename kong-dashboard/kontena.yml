@@ -1,5 +1,5 @@
 stack: kontena/kong-dashboard
-version: 0.2.0
+version: 0.1.0
 description: Dashboard for managing Kong gateway
 expose: ui
 services:
