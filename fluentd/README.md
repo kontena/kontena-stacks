@@ -79,5 +79,5 @@ $ kontena stack install kontena/fluentd-elasticsearch
 ### Grid Configuration
 
 ```
-$ kontena grid update --log-forwarder fluentd --log-opt fluentd-address=fluentd-elasticsearch.${GRID}.kontena.local:24224 ${GRID}
+$ kontena grid update --log-forwarder fluentd --log-opt fluentd-address=localhost ${GRID}
 ```
