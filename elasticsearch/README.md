@@ -5,7 +5,7 @@
 
 ### Prerequisites
 
-You need to have working [Kontena](http://www.kontena.io) Container Platform installed. If you are new to Kontena, check [quick start guide](http://www.kontena.io/docs/getting-started/quick-start). You also need to have working installation of `kontena/elasticsearch` stack.
+You need to have working [Kontena](http://www.kontena.io) Container Platform installed. If you are new to Kontena, check [quick start guide](http://www.kontena.io/docs/getting-started/quick-start).
 
 Elasticsearch is a bit memory hungry, so your nodes should have plenty of mem available.
 

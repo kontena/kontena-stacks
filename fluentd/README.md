@@ -70,6 +70,8 @@ $ kontena grid update --log-forwarder fluentd --log-opt fluentd-address=fluentd-
 
 Fluentd agent forwards logs to Elasticsearch for indexing. Logs are stored in "logstash" way so it's easier to put e.g. Kibana in front.
 
+> Note: You need to have working installation of `kontena/elasticsearch` stack running in the grid.
+
 ### Installation
 
 ```
