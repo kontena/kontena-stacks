@@ -2,7 +2,6 @@
 
 [Elasticsearch](https://www.elastic.co/products/elasticsearch) is a distributed, RESTful search and analytics engine capable of solving a growing number of use cases.
 
-
 ### Prerequisites
 
 You need to have working [Kontena](http://www.kontena.io) Container Platform installed. If you are new to Kontena, check [quick start guide](http://www.kontena.io/docs/getting-started/quick-start).
@@ -14,8 +13,9 @@ The default operating system limits on mmap counts is likely to be too low, whic
 kontena node ssh node-1 sudo sysctl -w vm.max_map_count=262144
 ```
 
-
 ## Install
+
+Elastcisearch stack needs `instance` scoped [volume](https://kontena.io/docs/using-kontena/volumes.html) named `elasticdata` to persist the data.
 
 Install Elasticsearch stack
 `$ kontena stack install kontena/elasticsearch`
