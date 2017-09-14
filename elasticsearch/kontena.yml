@@ -36,16 +36,30 @@ variables:
     to:
       vault: LOGSTASH_PASSWORD
 
+  mem_limit:
+    type: integer
+    default: 2048
+    from:
+      prompt: Memory limit (in megabytes).
+
+  jvm_limit:
+    type: integer
+    from:
+      evaluate: ${mem_limit} * 0.8
+
 services:
   elastic:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.5.2
     instances: {{ instances }}
     stateful: true
-    mem_limit: 3g
+    mem_limit: "{{ mem_limit }}m"
     environment:
       cluster.name: ${STACK}
       network.host: _ethwe_
       discovery.zen.ping.unicast.hosts: elastic
+      ES_JAVA_OPTS: "-Xms{{ jvm_limit }}m -Xmx{{ jvm_limit }}m"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
     hooks:
       post_start:
         # {% if reset_passwords %}
@@ -76,3 +90,7 @@ services:
       - secret: LOGSTASH_PASSWORD
         name: LOGSTASH_PASSWORD
         type: env
+
+volumes:
+  elasticdata:
+    external: true

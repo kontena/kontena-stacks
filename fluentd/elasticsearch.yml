@@ -29,7 +29,6 @@ services:
     cpu_shares: 256
 
     secrets:
-      # TODO: Figure out better way to get the secrets
       - secret: ELASTIC_PASSWORD
         name: ELASTIC_PASSWORD
         type: env
