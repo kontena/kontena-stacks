@@ -1,0 +1,98 @@
+stack: kontena/drone-gitlab
+version: 0.2.0
+description: Drone is a Continuous Delivery platform built on Docker
+variables:
+  loadbalancer:
+    type: string
+    from:
+      env: LOADBALANCER
+      service_link:
+        prompt: Choose a loadbalancer
+        image: kontena/lb
+  drone_host:
+    type: string
+    from:
+      prompt: Drone hostname
+  agent_instances:
+    type: integer
+    default: 1
+    from:
+      prompt: Number of Drone agents
+  gl_url:
+    type: string
+    from:
+      env: GITLAB_URL
+      vault: ${STACK}-gl-url
+      prompt: GitLab URL
+    to:
+      vault: ${STACK}-gl-url
+  gl_client_id:
+    type: string
+    from:
+      env: GITLAB_CLIENT
+      vault: ${STACK}-gl-client
+      prompt: GitLab client id
+    to:
+      vault: ${STACK}-gl-client
+  gl_client_secret:
+    type: string
+    from:
+      env: GITLAB_SECRET
+      vault: ${STACK}-gl-secret
+      prompt: GitLab secret
+    to:
+      vault: ${STACK}-gl-secret
+  shared_secret:
+    type: string
+    from:
+      env: SECRET
+      vault: ${STACK}-secret
+      random_string: 24
+    to:
+      vault: ${STACK}-secret
+services:
+  server:
+    image: drone/drone:0.7
+    instances: 1
+    stateful: true
+    mem_limit: 64m
+    environment:
+      - DRONE_DEBUG=true
+      - DRONE_GITLAB=true
+      - DRONE_OPEN=true
+      - DRONE_HOST=https://{{ drone_host }}
+      - KONTENA_LB_INTERNAL_PORT=8000
+      - KONTENA_LB_VIRTUAL_HOSTS={{ drone_host }}
+    secrets:
+      - secret: ${STACK}-gl-url
+        name: DRONE_GITLAB_URL
+        type: env
+      - secret: ${STACK}-gl-client
+        name: DRONE_GITLAB_CLIENT
+        type: env
+      - secret: ${STACK}-gl-secret
+        name: DRONE_GITLAB_SECRET
+        type: env
+      - secret: ${STACK}-secret
+        name: DRONE_AGENT_SECRET
+        type: env
+    volumes:
+      - /var/lib/drone
+    links:
+      - "{{ loadbalancer }}"
+
+  agent:
+    image: drone/drone:0.7
+    command: agent
+    instances: {{ agent_instances }}
+    mem_limit: 64m
+    depends_on:
+      - server
+    environment:
+      - DRONE_SERVER=ws://server:8000/ws/broker
+    secrets:
+      - secret: ${STACK}-secret
+        name: DRONE_SECRET
+        type: env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
