@@ -7,13 +7,11 @@ HA Kafka cluster on Kontena
 
 ## Install
 
-Prerequisites: You need to have working Kontena Container Platform installed. If you are new to Kontena, check quick start guide.
+Prerequisites: You need to have working Kontena Container Platform installed. If you are new to Kontena, check quick start guide.  You also need a running Zookeeper cluster.  For the simplest installation, use the Kontena provided stack `kontena/zookeeper-cluster`.
 
-
-Kafka and Zookeeper are stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
+Zookeeper is a stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
 
 ```
-$ kontena volume create --scope instance --driver local kafka-cluster-zookeeper-data
 $ kontena volume create --scope instance --driver local kafka-cluster-kafka-data
 ```
 
@@ -21,7 +19,9 @@ Next install the stack itself.  There are 3 options available, configured with e
 
 | Option | Description |
 | -------| ------------|
-| `ZOOKEEPER_URI` | URI of Zookeeper cluster.  Default value if using Kontena Zookeeper stack in the same grid |
+| `LINK_ZOOKEEPER` | Boolean, if true use a Zookeeper Kontena service, otherwise specify an external URI.  Defaults to true. |
+| `ZOOKEEPER_LINK` | If `LINK_ZOOKEEPER` is true, this is the service to link to. |
+| `ZOOKEEPER_URI` | If `LINK_ZOOKEEPER` is false, this is the URI of Zookeeper to use. |
 | `NUM_INSTANCES` | Number of instances of Kafka broker.  Default is 3. |
 | `EXPOSE_KAFKA_PORT` | Boolean, if true the Kafka port 9092 will be exposed to the host node.  Defaults to `false` |
 | `SKIP_VOLUMES` | Boolean, if true no volumes are mapped.  Useful for local development.  Defaults to `false` |
@@ -45,11 +45,9 @@ Other services can now connect to Kafka using the address `kafka.kafka-cluster.$
 ## Local Development
 The `kafka-cluster` stack is also very useful if you are developing systems that use Kafka even when your development environment itself is not running inside Kontena.  To run a local development setup, make sure to do the following steps:
 
-1. Make sure you also create local Zookeeper stack
-2. Set `NUM_KAFKA_INSTANCES` to 1
-3. Set `EXPOSE_KAFKA_PORT` to `true` (this will make port 9092 on your development machine connect to Kafka inside Kontena)
-4. Optionally set `SKIP_VOLUMES` to `true` 
-5. Add an `/etc/hosts` file entry (assuming here our Kontena grid name is `dev`) `127.0.0.1  kafka.kafka-cluster.dev.kontena.local` (for Vagrant development setups you may want to change 127.0.0.1 to the address of your Vagrant VM).
+1. Create a local Zookeeper stack: `NUM_INSTANCES=1 SKIP_VOLUMES=true kontena stack install kontena/zookeeper-cluster`
+2. Create a local Kafka stack: `NUM_INSTANCES=1 SKIP_VOLUMES=true EXPOSE_KAFKA_PORT=true kontena stack install kontena/kafka-cluster`
+3. Add an `/etc/hosts` file entry (assuming here our Kontena grid name is `dev`) `127.0.0.1  kafka.kafka-cluster.dev.kontena.local` (for Vagrant development setups you may want to change 127.0.0.1 to the address of your Vagrant VM).
 
 Now services outside of the Kontena grid can connect to Kafka using the address `kafka.kafka-cluster.dev.kontena.local:9092`.
 

@@ -1,0 +1,54 @@
+---
+stack: kontena/zookeeper-cluster
+version: 1.0.0
+description: Zookeeper cluster based on Harvard Hypermap
+expose: zookeeper
+variables:
+  num_instances:
+    type: integer
+    min: 1
+    default: 3
+    from:
+      env: NUM_INSTANCES
+      prompt: number of instances of Zookeeper?
+  skip_volumes:
+    type: boolean
+    default: false
+    from:
+      env: SKIP_VOLUMES
+
+services:
+  zookeeper:
+    image: kontena/zookeeper:latest
+    stateful: true
+    # {% unless skip_volumes %}
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper
+    # {% endunless %}
+    instances: ${num_instances}
+    deploy:
+      wait_for_port: 2181
+      min_health: 0.5
+    environment:
+      # {% assign zookeeper_servers = "" %}
+      # {% for i in (1..num_instances) %}
+      # {%   capture server %}server.{{ i }}=zookeeper-{{ i }}.{{ STACK }}.{{ GRID }}.kontena.local:2888:3888 {% endcapture %}
+      # {%   assign zookeeper_servers = zookeeper_servers | append: server %}
+      # {% endfor %}
+      ZOO_SERVERS: {{ zookeeper_servers }}
+      ZOO_AUTOPURGE_PURGE_INTERVAL: 24
+      JMXPORT: 9999
+      SERVER_JVMFLAGS: -Xmx500M -XX:+CrashOnOutOfMemoryError
+    health_check:
+      protocol: tcp
+      port: 2181
+      timeout: 10
+      interval: 300
+      initial_delay: 10
+
+# {% unless skip_volumes %}
+volumes:
+  zookeeper-data:
+    external:
+      name: ${STACK}-zookeeper-data
+# {% endunless %}
