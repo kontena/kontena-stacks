@@ -13,7 +13,7 @@ Prerequisites: You need to have working Kontena Container Platform installed. If
 Zookeeper is a stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
 
 ```
-$ kontena volume create --scope instance --driver local zookeeper-cluster-zookeeper-data
+$ kontena volume create --scope instance --driver local zookeeper-cluster-data
 ```
 
 For local development purposes you can skip volume creation by using the `SKIP_VOLUMES` variable.

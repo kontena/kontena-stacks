@@ -37,30 +37,24 @@ variables:
     default: false
     from:
       env: EXPOSE_KAFKA_PORT
+      prompt: expose kafka port to host?
   skip_volumes:
     type: boolean
     default: false
     from:
       env: SKIP_VOLUMES
-  delete_topic_enable:
-    type: boolean
-    default: true
+  kafka_variables:
+    type: array
+    split: ','
+    uniq: true
+    compact: true
+    default: "KAFKA_DELETE_TOPIC_ENABLE=true,KAFKA_DEFAULT_REPLICATION_FACTOR=2,KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=2"
     from:
-      env: DELETE_TOPIC_ENABLE
-  default_replication_factor:
-    type: integer
-    default: 2
-    from:
-      env: DEFAULT_REPLICATION_FACTOR
-  compression_type:
-    type: string
-    default: lz4
-    from:
-      env: COMPRESSION_TYPE
+      env: KAFKA_VARIABLES
 
 services:
   kafka:
-    image: kontena/kafka:latest
+    image: kontena/kafka:3.3.0
     stateful: true
     # {% unless skip_volumes %}
     volumes:
@@ -75,7 +69,14 @@ services:
     links:
       - ${zookeeper_link}
     # {% endif %}
+    deploy:
+      wait_for_port: 9092
+      min_health: 0.5
     environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka.${STACK}.${GRID}.kontena.local:9092
+      - KAFKA_JMX_PORT=9999
+      #
+      # ***** Configure Zookeeper connect uri *****
       # {% assign zookeeper_connect = "" %}
       # {% if link_zookeeper %}
       # {%   assign parts = zookeeper_link | split: '/' %}
@@ -83,15 +84,24 @@ services:
       # {% else %}
       # {%   assign zookeeper_connect = zookeeper_uri %}
       # {% endif %}
-      KAFKA_ZOOKEEPER_CONNECT: {{ zookeeper_connect }}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka.${STACK}.${GRID}.kontena.local:9092
-      KAFKA_DELETE_TOPIC_ENABLE: ${delete_topic_enable}
-      KAFKA_DEFAULT_REPLICATION_FACTOR: ${default_replication_factor}
-      KAFKA_COMPRESSION_TYPE: ${compression_type}
-      KAFKA_JMX_PORT: 9999
+      - KAFKA_ZOOKEEPER_CONNECT={{ zookeeper_connect }}
+      #
+      # ***** Configure Kafka variables *****
+      # {% for kafka_variable in kafka_variables %}
+      # {%   assign env_var = kafka_variable %}
+      # {%   assign parts = kafka_variable | split: '=' %}
+      # {%   if parts[0] contains "REPLICATION_FACTOR" %}
+      # {%     assign val = parts[1] | plus: 0 %}
+      # {%     if val > num_instances %}
+      # {%       capture env_var %}{{ parts[0] }}={{ num_instances }}{% endcapture %}
+      # {%     endif %}
+      # {%   endif %}
+      - "{{ env_var }}"
+      # {% endfor %}
+
 # {% unless skip_volumes %}
 volumes:
   kafka-data:
     external:
-      name: ${STACK}-kafka-data
+      name: ${STACK}-data
 # {% endunless %}

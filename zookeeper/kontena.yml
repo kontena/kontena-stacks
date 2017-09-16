@@ -19,7 +19,7 @@ variables:
 
 services:
   zookeeper:
-    image: kontena/zookeeper:latest
+    image: kontena/zookeeper:3.4
     stateful: true
     # {% unless skip_volumes %}
     volumes:
@@ -50,5 +50,5 @@ services:
 volumes:
   zookeeper-data:
     external:
-      name: ${STACK}-zookeeper-data
+      name: ${STACK}-data
 # {% endunless %}

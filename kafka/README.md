@@ -12,7 +12,7 @@ Prerequisites: You need to have working Kontena Container Platform installed. If
 Zookeeper is a stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
 
 ```
-$ kontena volume create --scope instance --driver local kafka-cluster-kafka-data
+$ kontena volume create --scope instance --driver local kafka-cluster-data
 ```
 
 Next install the stack itself.  There are 3 options available, configured with environment variables or interactively via prompts:
@@ -25,6 +25,7 @@ Next install the stack itself.  There are 3 options available, configured with e
 | `NUM_INSTANCES` | Number of instances of Kafka broker.  Default is 3. |
 | `EXPOSE_KAFKA_PORT` | Boolean, if true the Kafka port 9092 will be exposed to the host node.  Defaults to `false` |
 | `SKIP_VOLUMES` | Boolean, if true no volumes are mapped.  Useful for local development.  Defaults to `false` |
+| `KAFKA_VARIABLES` | Comma delimited list of Kafka config variables.  Of the form `KAFKA_SOME_VAR=value`, which is transformed into the Kafka config form `some.var=value`.  Any variable `replication.factor` variable will never be set greater than `NUM_INSTANCES`. |
 
 Generally, the default values are good for a basic cluster setup.
 
@@ -56,16 +57,17 @@ Thanks to Kontena's `service exec` feature, it's fairly easy to run the various 
 
 Examples:
 
-- Creating a single partition, single replica topic:
-
-```
-$ kontena service exec kafka-cluster/kafka /usr/bin/kafka-topics --create --zookeeper zookeeper.zookeeper-cluster.dev.kontena.local:2181 --replication-factor 1 --partitions 1 --topic mytopic
-```
-
 - List all topics:
 
 ```
 $ kontena service exec kafka-cluster/kafka /usr/bin/kafka-topics --list --zookeeper zookeeper.zookeeper-cluster.dev.kontena.local:2181
+```
+
+
+- Creating a single partition, single replica topic:
+
+```
+$ kontena service exec kafka-cluster/kafka /usr/bin/kafka-topics --create --zookeeper zookeeper.zookeeper-cluster.dev.kontena.local:2181 --replication-factor 1 --partitions 1 --topic mytopic
 ```
 
 - Interactively listen for all events on a topic from the beginning:
