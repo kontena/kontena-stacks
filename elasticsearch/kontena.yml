@@ -15,26 +15,26 @@ variables:
     only_if: reset_passwords
     type: string
     from:
-      vault: ELASTIC_PASSWORD
+      vault: elastic-password
       random_string: 12
     to:
-      vault: ELASTIC_PASSWORD
+      vault: elastic-password
   kibana_password:
     only_if: reset_passwords
     type: string
     from:
-      vault: KIBANA_PASSWORD
+      vault: kibana-password
       random_string: 12
     to:
-      vault: KIBANA_PASSWORD
+      vault: kibana-password
   logstash_password:
     only_if: reset_passwords
     type: string
     from:
-      vault: LOGSTASH_PASSWORD
+      vault: logstash-password
       random_string: 12
     to:
-      vault: LOGSTASH_PASSWORD
+      vault: logstash-password
 
   mem_limit:
     type: integer
@@ -46,6 +46,12 @@ variables:
     type: integer
     from:
       evaluate: ${mem_limit} * 0.8
+
+  affinity:
+    type: string
+    required: false
+    from:
+      prompt: Affinity rule
 
 services:
   elastic:
@@ -60,6 +66,10 @@ services:
       ES_JAVA_OPTS: "-Xms{{ jvm_limit }}m -Xmx{{ jvm_limit }}m"
     volumes:
       - elasticdata:/usr/share/elasticsearch/data
+    affinity:
+      # {% if affinity %}
+      - {{ affinity }}
+      # {% endif %}
     hooks:
       post_start:
         # {% if reset_passwords %}
@@ -81,13 +91,13 @@ services:
           oneshot: true
         # {% endif %}
     secrets:
-      - secret: ELASTIC_PASSWORD
+      - secret: elastic-password
         name: ELASTIC_PASSWORD
         type: env
-      - secret: KIBANA_PASSWORD
+      - secret: kibana-password
         name: KIBANA_PASSWORD
         type: env
-      - secret: LOGSTASH_PASSWORD
+      - secret: logstash-password
         name: LOGSTASH_PASSWORD
         type: env
 

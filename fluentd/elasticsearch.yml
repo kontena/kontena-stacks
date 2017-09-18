@@ -15,8 +15,6 @@ variables:
 
 services:
   agent:
-    build:
-      context: elasticsearch
     image: kontena/fluentd-elasticsearch:latest
     environment:
       ELASTIC_USER: {{ user }}
@@ -29,6 +27,6 @@ services:
     cpu_shares: 256
 
     secrets:
-      - secret: ELASTIC_PASSWORD
+      - secret: elastic-password
         name: ELASTIC_PASSWORD
         type: env

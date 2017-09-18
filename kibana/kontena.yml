@@ -49,6 +49,6 @@ services:
       - ${loadbalancer}
       # {% endif %}
     secrets:
-      - secret: ELASTIC_PASSWORD
+      - secret: elastic-password
         name: ELASTICSEARCH_PASSWORD
         type: env
