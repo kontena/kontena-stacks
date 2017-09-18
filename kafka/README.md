@@ -25,7 +25,7 @@ Next install the stack itself.  There are 3 options available, configured with e
 | `NUM_INSTANCES` | Number of instances of Kafka broker.  Default is 3. |
 | `EXPOSE_KAFKA_PORT` | Boolean, if true the Kafka port 9092 will be exposed to the host node.  Defaults to `false` |
 | `SKIP_VOLUMES` | Boolean, if true no volumes are mapped.  Useful for local development.  Defaults to `false` |
-| `KAFKA_VARIABLES` | Comma delimited list of Kafka config variables.  Of the form `KAFKA_SOME_VAR=value`, which is transformed into the Kafka config form `some.var=value`.  Any variable `replication.factor` variable will never be set greater than `NUM_INSTANCES`. |
+| `KAFKA_VARIABLES` | Comma delimited list of Kafka config variables.  Of the form `KAFKA_SOME_VAR=value`, which is transformed into the Kafka config form `some.var=value`.  Any variable containing `replication.factor` will never be set to a value greater than `NUM_INSTANCES` (`offsets.topic.replication.factor`, `transaction.state.log.replication.factor`, `default.replication.factor`, `config.storage.replication.factor`, `offset.storage.replication.factor`, `status.storage.replication.factor`). |
 
 Generally, the default values are good for a basic cluster setup.
 
