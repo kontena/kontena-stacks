@@ -10,7 +10,7 @@ HA Zookeeper cluster on Kontena
 Prerequisites: You need to have working Kontena Container Platform installed. If you are new to Kontena, check quick start guide.
 
 
-Zookeeper is a stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
+Zookeeper is a stateful service, therefore you must first create a Kontena volume.  For a local volume run the following command:
 
 ```
 $ kontena volume create --scope instance --driver local zookeeper-cluster-data
@@ -18,7 +18,7 @@ $ kontena volume create --scope instance --driver local zookeeper-cluster-data
 
 For local development purposes you can skip volume creation by using the `SKIP_VOLUMES` variable.
 
-Next install the stack itself.  There are multiple options available:
+Next install the stack itself.  There are a few options available:
 
 | Option | Description |
 | -------| ------------|
@@ -39,4 +39,4 @@ To upgrade:
 $ kontena stack upgrade zookeeper-cluster
 ```
 
-Other services can now connect to Zookeeper using the address `zookeeper.zookeeper-cluster.${GRID}.kontena.local`.
+Other services inside your Kontena Grid can now connect to Zookeeper using the address `zookeeper.zookeeper-cluster.${GRID}.kontena.local`.

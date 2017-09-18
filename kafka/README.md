@@ -9,13 +9,15 @@ HA Kafka cluster on Kontena
 
 Prerequisites: You need to have working Kontena Container Platform installed. If you are new to Kontena, check quick start guide.  You also need a running Zookeeper cluster.  For the simplest installation, use the Kontena provided stack `kontena/zookeeper-cluster`.
 
-Zookeeper is a stateful services, therefore you must first create a Kontena volume.  For a local volume run the following commands:
+Kafka is a stateful service, therefore you must first create a Kontena volume.  For a local volume run the following command:
 
 ```
 $ kontena volume create --scope instance --driver local kafka-cluster-data
 ```
 
-Next install the stack itself.  There are 3 options available, configured with environment variables or interactively via prompts:
+For local development purposes you can skip volume creation by using the `SKIP_VOLUMES` variable.
+
+Next install the stack itself.  There are multiple options available, configured with environment variables or interactively via prompts:
 
 | Option | Description |
 | -------| ------------|
@@ -41,10 +43,10 @@ To upgrade:
 $ kontena stack upgrade kafka-cluster
 ```
 
-Other services can now connect to Kafka using the address `kafka.kafka-cluster.${GRID}.kontena.local:9092`.
+Other services inside your Kontena Grid can now connect to Kafka using the address `kafka.kafka-cluster.${GRID}.kontena.local:9092`.
 
 ## Local Development
-The `kafka-cluster` stack is also very useful if you are developing systems that use Kafka even when your development environment itself is not running inside Kontena.  To run a local development setup, make sure to do the following steps:
+The `kafka-cluster` stack is also very useful if you are developing systems that use Kafka even when your development environment itself is not running inside Kontena.  To run a local development setup, make sure to do the following steps (examples assume a Kontena Grid named `dev`):
 
 1. Create a local Zookeeper stack: `NUM_INSTANCES=1 SKIP_VOLUMES=true kontena stack install kontena/zookeeper-cluster`
 2. Create a local Kafka stack: `NUM_INSTANCES=1 SKIP_VOLUMES=true EXPOSE_KAFKA_PORT=true kontena stack install kontena/kafka-cluster`
