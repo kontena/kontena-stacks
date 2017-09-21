@@ -1,0 +1,54 @@
+stack: kontena/kibana
+version: 0.1.0
+description: Kibana
+variables:
+  host:
+    type: string
+    default: elasticsearch.${GRID}.kontena.local
+    from:
+      prompt: Elasticsearch host
+  port:
+    type: integer
+    default: 9200
+    from:
+      prompt: Elastic port
+  user:
+    type: string
+    default: elastic
+    from:
+      prompt: Elasticsearch user
+  loadbalancer:
+    type: string
+    from:
+      env: LOADBALANCER
+      service_link:
+        prompt: Choose a loadbalancer
+        image: kontena/lb
+  virtual_host:
+    only_if:
+      - loadbalancer
+    type: string
+    from:
+      env: VIRTUAL_HOSTS
+      prompt: Domain name for Kibana
+
+
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.5.2
+    environment:
+      SERVER_NAME: {{ virtual_host }}
+      ELASTICSEARCH_URL: http://{{ host }}:{{ port }}
+      ELASTICSEARCH_USERNAME: {{ user }}
+      # {% if loadbalancer %}
+      KONTENA_LB_INTERNAL_PORT: 5601
+      KONTENA_LB_VIRTUAL_HOSTS: ${virtual_host}
+      # {% endif %}
+    links:
+      # {% if loadbalancer %}
+      - ${loadbalancer}
+      # {% endif %}
+    secrets:
+      - secret: elastic-password
+        name: ELASTICSEARCH_PASSWORD
+        type: env

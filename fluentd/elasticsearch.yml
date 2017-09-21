@@ -1,0 +1,32 @@
+stack: kontena/fluentd-elasticsearch
+version: 0.1.0
+description: Fluent forwarding to Elasticsearch
+variables:
+  host:
+    type: string
+    default: elasticsearch.${GRID}.kontena.local
+    from:
+      prompt: Elasticsearch host
+  user:
+    type: string
+    default: elastic
+    from:
+      prompt: Elasticsearch user
+
+services:
+  agent:
+    image: kontena/fluentd-elasticsearch:latest
+    environment:
+      ELASTIC_USER: {{ user }}
+      ELASTIC_HOST: {{ host }}
+    ports:
+      - 24224:24224
+    deploy:
+      strategy: daemon
+    mem_limit: 128m
+    cpu_shares: 256
+
+    secrets:
+      - secret: elastic-password
+        name: ELASTIC_PASSWORD
+        type: env

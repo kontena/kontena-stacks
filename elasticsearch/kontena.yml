@@ -1,0 +1,106 @@
+stack: kontena/elasticsearch
+version: 0.1.0
+description: Elasticsearch
+expose: elastic
+variables:
+  instances:
+    type: integer
+    from:
+      prompt: How many instances?
+  reset_passwords:
+    type: boolean
+    from:
+      prompt: Reset all default passwords during initial stack installation?
+  elastic_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: elastic-password
+      random_string: 12
+    to:
+      vault: elastic-password
+  kibana_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: kibana-password
+      random_string: 12
+    to:
+      vault: kibana-password
+  logstash_password:
+    only_if: reset_passwords
+    type: string
+    from:
+      vault: logstash-password
+      random_string: 12
+    to:
+      vault: logstash-password
+
+  mem_limit:
+    type: integer
+    default: 2048
+    from:
+      prompt: Memory limit (in megabytes).
+
+  jvm_limit:
+    type: integer
+    from:
+      evaluate: ${mem_limit} * 0.8
+
+  affinity:
+    type: string
+    required: false
+    from:
+      prompt: Affinity rule
+
+services:
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.5.2
+    instances: {{ instances }}
+    stateful: true
+    mem_limit: "{{ mem_limit }}m"
+    environment:
+      cluster.name: ${STACK}
+      network.host: _ethwe_
+      discovery.zen.ping.unicast.hosts: elastic
+      ES_JAVA_OPTS: "-Xms{{ jvm_limit }}m -Xmx{{ jvm_limit }}m"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+    affinity:
+      # {% if affinity %}
+      - {{ affinity }}
+      # {% endif %}
+    hooks:
+      post_start:
+        # {% if reset_passwords %}
+        - cmd: while ! (echo > /dev/tcp/$$HOSTNAME/9200) >/dev/null 2>&1; do sleep 1; done
+          name: Wait for elastic to startup
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:changeme -XPOST -d '{"password":"'"$$ELASTIC_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/elastic/_password
+          name: Change default user password
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:$$ELASTIC_PASSWORD -XPOST -d '{"password":"'"$$KIBANA_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/kibana/_password
+          name: Change kibana user password
+          instances: {{ instances }}
+          oneshot: true
+        - cmd: curl -u elastic:$$ELASTIC_PASSWORD -XPOST -d '{"password":"'"$$LOGSTASH_PASSWORD"'"}' $$HOSTNAME:9200/_xpack/security/user/logstash_system/_password
+          name: Change logstash_system user password
+          instances: {{ instances }}
+          oneshot: true
+        # {% endif %}
+    secrets:
+      - secret: elastic-password
+        name: ELASTIC_PASSWORD
+        type: env
+      - secret: kibana-password
+        name: KIBANA_PASSWORD
+        type: env
+      - secret: logstash-password
+        name: LOGSTASH_PASSWORD
+        type: env
+
+volumes:
+  elasticdata:
+    external: true

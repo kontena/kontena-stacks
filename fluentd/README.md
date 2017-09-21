@@ -65,3 +65,21 @@ $ kontena stack install kontena/fluentd-splunkhec
 ```
 $ kontena grid update --log-forwarder fluentd --log-opt fluentd-address=fluentd-splunkhec.${GRID}.kontena.local:24224 ${GRID}
 ```
+
+## Elasticsearch
+
+Fluentd agent forwards logs to Elasticsearch for indexing. Logs are stored in "logstash" way so it's easier to put e.g. Kibana in front.
+
+> Note: You need to have working installation of `kontena/elasticsearch` stack running in the grid.
+
+### Installation
+
+```
+$ kontena stack install kontena/fluentd-elasticsearch
+```
+
+### Grid Configuration
+
+```
+$ kontena grid update --log-forwarder fluentd --log-opt fluentd-address=localhost ${GRID}
+```
