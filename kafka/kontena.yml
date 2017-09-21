@@ -1,0 +1,107 @@
+---
+stack: kontena/kafka-cluster
+version: 1.0.0
+description: Kafka cluster based on Harvard Hypermap
+expose: kafka
+variables:
+  link_zookeeper:
+    type: boolean
+    default: true
+    from:
+      env: LINK_ZOOKEEPER
+      prompt: link zookeeper stack?
+  zookeeper_link:
+    type: string
+    only_if: link_zookeeper
+    from:
+      env: LINK_ZOOKEEPER
+      service_link:
+        prompt: Choose zookeeper
+        name: zookeeper
+  zookeeper_uri:
+    type: string
+    default: zookeeper.zookeeper-cluster.${GRID}.kontena.local:9092
+    skip_if: link_zookeeper
+    from:
+      env: ZOOKEEPER_URI
+      prompt: Zookeeper uri
+  num_instances:
+    type: integer
+    min: 1
+    default: 3
+    from:
+      env: NUM_INSTANCES
+      prompt: number of instances of Kafka?
+  expose_kafka_port:
+    type: boolean
+    default: false
+    from:
+      env: EXPOSE_KAFKA_PORT
+      prompt: expose kafka port to host?
+  skip_volumes:
+    type: boolean
+    default: false
+    from:
+      env: SKIP_VOLUMES
+  kafka_variables:
+    type: array
+    split: ','
+    uniq: true
+    compact: true
+    default: "KAFKA_DELETE_TOPIC_ENABLE=true,KAFKA_DEFAULT_REPLICATION_FACTOR=2,KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=2"
+    from:
+      env: KAFKA_VARIABLES
+
+services:
+  kafka:
+    image: kontena/kafka:3.3.0
+    stateful: true
+    # {% unless skip_volumes %}
+    volumes:
+      - kafka-data:/var/lib/kafka
+    # {% endunless %}
+    instances: ${num_instances}
+    # {% if expose_kafka_port %}
+    ports:
+      - "9092:9092"
+    # {% endif %}
+    # {% if link_zookeeper %}
+    links:
+      - ${zookeeper_link}
+    # {% endif %}
+    deploy:
+      wait_for_port: 9092
+      min_health: 0.5
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka.${STACK}.${GRID}.kontena.local:9092
+      - KAFKA_JMX_PORT=9999
+      #
+      # ***** Configure Zookeeper connect uri *****
+      # {% assign zookeeper_connect = "" %}
+      # {% if link_zookeeper %}
+      # {%   assign parts = zookeeper_link | split: '/' %}
+      # {%   capture zookeeper_connect %}{{ parts[1] }}.{{ parts[0] }}.{{ GRID }}.kontena.local {% endcapture %}
+      # {% else %}
+      # {%   assign zookeeper_connect = zookeeper_uri %}
+      # {% endif %}
+      - KAFKA_ZOOKEEPER_CONNECT={{ zookeeper_connect }}
+      #
+      # ***** Configure Kafka variables *****
+      # {% for kafka_variable in kafka_variables %}
+      # {%   assign env_var = kafka_variable %}
+      # {%   assign parts = kafka_variable | split: '=' %}
+      # {%   if parts[0] contains "REPLICATION_FACTOR" %}
+      # {%     assign val = parts[1] | plus: 0 %}
+      # {%     if val > num_instances %}
+      # {%       capture env_var %}{{ parts[0] }}={{ num_instances }}{% endcapture %}
+      # {%     endif %}
+      # {%   endif %}
+      - "{{ env_var }}"
+      # {% endfor %}
+
+# {% unless skip_volumes %}
+volumes:
+  kafka-data:
+    external:
+      name: ${STACK}-data
+# {% endunless %}
