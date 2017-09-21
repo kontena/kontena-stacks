@@ -40,3 +40,7 @@ $ kontena stack upgrade zookeeper-cluster
 ```
 
 Other services inside your Kontena Grid can now connect to Zookeeper using the address `zookeeper.zookeeper-cluster.${GRID}.kontena.local`.
+
+## Caveats
+
+Due to the way Zookeeper works, Kontena service scaling via the `kontena service scale` command will not work properly.  This is due to the `ZOO_SERVERS` variable requiring all available Zookeeper host names to be present.  In order to scale Zookeeper up and down, please run `kontena stack upgrade` and specify the new cluster size via the `NUM_INSTANCES` environment variable or CLI prompt.  Doing this will allow the stack file's Liquid templates to rerun and set the correct `ZOO_SERVERS` value.

@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copied from HHypermap BOP 
+# See https://github.com/cga-harvard/hhypermap-bop/blob/master/kafka/kafka.run
+
 set -o nounset \
     -o errexit \
     -o verbose \

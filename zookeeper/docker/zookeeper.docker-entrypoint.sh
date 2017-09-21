@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copied from HHypermap BOP
+# See https://github.com/cga-harvard/hhypermap-bop/blob/master/kafka/zookeeper.docker-entrypoint.sh
+
 set -e
 
 # Allow the container to be started with `--user`
