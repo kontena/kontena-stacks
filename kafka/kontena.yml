@@ -1,6 +1,6 @@
 ---
 stack: kontena/kafka-cluster
-version: 1.0.0
+version: 1.0.1
 description: Kafka cluster based on Harvard Hypermap
 expose: kafka
 variables:
