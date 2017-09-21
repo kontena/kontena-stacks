@@ -8,7 +8,7 @@ Following chapters describe how to set up EFK using ready made stacks. It's advi
 
 ## Elasticsearch
 
-Set up Elasticsearch using `kontena/elasticsearch` stack. It needs volumes to store Elasticsearch data persistently. Those volumes should be `instance` scoped as Elasticsearch itself replicates the data.
+Set up Elasticsearch using [`kontena/elasticsearch`](https://github.com/kontena/kontena-stacks/tree/master/elasticsearch) stack. It needs volumes to store Elasticsearch data persistently. Those volumes should be `instance` scoped as Elasticsearch itself replicates the data.
 
 The initial setup of Elasticsearch stack creates new passwords in Kontena secrets vault for the default users in Elasticsearch and configures Elasticsearch to use those. The same secrets are also automatically used when installing Kibana and Fluentd stacks.
 
@@ -16,14 +16,14 @@ The initial setup of Elasticsearch stack creates new passwords in Kontena secret
 
 Fluentd is used to receive the log data and to store it in Elasticsearch.
 
-Fluentd can be set up using `kontena/fluentd-elasticsearch` stack. You need to configure the elasticsearch hostname where fluentd will store the data.
+Fluentd can be set up using [`kontena/fluentd-elasticsearch`](https://github.com/kontena/kontena-stacks/tree/master/fluentd/elasticsearch) stack. You need to configure the elasticsearch hostname where fluentd will store the data.
 
 
 ## Kibana
 
 Kibana is used to query and visualize the logs stored and indexed in Elasticsearch.
 
-Kibana can be setup easily with `kontena/kibana` stack.
+Kibana can be setup easily with [`kontena/kibana`](https://github.com/kontena/kontena-stacks/tree/master/kibana) stack.
 
 
 ## TODO

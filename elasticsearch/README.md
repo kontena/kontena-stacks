@@ -15,7 +15,10 @@ kontena node ssh node-1 sudo sysctl -w vm.max_map_count=262144
 
 ## Install
 
-Elastcisearch stack needs `instance` scoped [volume](https://kontena.io/docs/using-kontena/volumes.html) named `elasticdata` to persist the data.
+Elastcisearch stack needs `instance` scoped [volume](https://kontena.io/docs/using-kontena/volumes.html) named `elasticdata` to persist the data. Volume configuration can be created with:
+```
+kontena volume create --scope instance --driver local elasticdata
+```
 
 Install Elasticsearch stack
 `$ kontena stack install kontena/elasticsearch`
