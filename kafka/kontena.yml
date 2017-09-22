@@ -1,6 +1,6 @@
 ---
 stack: kontena/kafka-cluster
-version: 1.0.1
+version: 1.0.3
 description: Kafka cluster based on Harvard Hypermap
 expose: kafka
 variables:
@@ -73,8 +73,18 @@ services:
       wait_for_port: 9092
       min_health: 0.5
     environment:
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka.${STACK}.${GRID}.kontena.local:9092
       - KAFKA_JMX_PORT=9999
+      #
+      # ***** Configure Broker list *****
+      # {% assign broker_list = "" %}
+      # {% for i in (1..num_instances) %}
+      # {%   capture broker %}kafka-{{ i }}:9092{% endcapture %}
+      # {%   assign broker_list = broker_list | append: broker %}
+      # {%   if i < num_instances %}
+      # {%     assign broker_list = broker_list | append: "," %}
+      # {%   endif %}
+      # {% endfor %}
+      - BROKER_LIST={{ broker_list }}
       #
       # ***** Configure Zookeeper connect uri *****
       # {% assign zookeeper_connect = "" %}

@@ -57,31 +57,36 @@ Now services outside of the Kontena grid can connect to Kafka using the address 
 ## Configuration
 Thanks to Kontena's `service exec` feature, it's fairly easy to run the various management tools Kafka provides without having to have direct `ssh` access to Kafka.
 
+First, log into a new interactive shell and switch to the `/usr/bin` directory where all the Kafka tools are:
+
+```
+$ kontena service exec -it kafka-cluster/kafka sh
+$ cd /usr/bin
+```
+
 Examples:
 
 - List all topics:
 
 ```
-$ kontena service exec kafka-cluster/kafka /usr/bin/kafka-topics --list --zookeeper zookeeper.zookeeper-cluster.dev.kontena.local:2181
+$ ./kafka-topics --list --zookeeper $KAFKA_ZOOKEEPER_CONNECT:2181
 ```
-
 
 - Creating a single partition, single replica topic:
 
 ```
-$ kontena service exec kafka-cluster/kafka /usr/bin/kafka-topics --create --zookeeper zookeeper.zookeeper-cluster.dev.kontena.local:2181 --replication-factor 1 --partitions 1 --topic mytopic
+$ ./kafka-topics --create --zookeeper $KAFKA_ZOOKEEPER_CONNECT:2181 --replication-factor 1 --partitions 1 --topic mytopic
 ```
 
-- Interactively listen for all events on a topic from the beginning:
+- Interactively publish events to a topic (assuming a 3 node cluster for `broker-list` argument):
 
 ```
-$ kontena service exec -it kafka-cluster/kafka sh
-$ /usr/bin/kafka-console-consumer --bootstrap-server kafka:9092 --topic mytopic --from-beginning
+$ ./kafka-console-producer --broker-list kafka-1:9092,kafka-2:9092,kafka-3:9092 --topic mytopic
 ```
 
-- Interactively publish events to a topic:
+- Interactively listen for all events on a topic from the beginning (assuming a 3 node cluster for `broker-list` argument):
 
 ```
-$ kontena service exec -it kafka-cluster/kafka sh
-$ /usr/bin/kafka-console-producer --broker-list kafka:9092 --topic mytopic
+$ ./kafka-console-consumer --bootstrap-server kafka-1:9092,kafka-2:9092,kafka-3:9092 --topic mytopic --from-beginning
 ```
+
