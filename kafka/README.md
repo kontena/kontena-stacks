@@ -60,7 +60,7 @@ Thanks to Kontena's `service exec` feature, it's fairly easy to run the various 
 First, log into a new interactive shell and switch to the `/usr/bin` directory where all the Kafka tools are:
 
 ```
-$ kontena service exec -it kafka-cluster/kafka sh
+$ kontena service exec -it kafka-cluster/kafka bash
 $ cd /usr/bin
 ```
 
