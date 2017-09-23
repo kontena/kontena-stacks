@@ -55,7 +55,7 @@ The `kafka-cluster` stack is also very useful if you are developing systems that
 Now services outside of the Kontena grid can connect to Kafka using the address `kafka.kafka-cluster.dev.kontena.local:9092`.
 
 ## Configuration
-Thanks to Kontena's `service exec` feature, it's fairly easy to run the various management tools Kafka provides without having to have direct `ssh` access to Kafka.
+Thanks to Kontena's `service exec` feature, it's fairly easy to run the various management tools Kafka provides without requiring `ssh` access to Kafka servers.
 
 First, log into a new interactive shell and switch to the `/usr/bin` directory where all the Kafka tools are:
 
@@ -81,12 +81,11 @@ $ ./kafka-topics --create --zookeeper $KAFKA_ZOOKEEPER_CONNECT:2181 --replicatio
 - Interactively publish events to a topic (assuming a 3 node cluster for `broker-list` argument):
 
 ```
-$ ./kafka-console-producer --broker-list kafka-1:9092,kafka-2:9092,kafka-3:9092 --topic mytopic
+$ ./kafka-console-producer --broker-list $BROKER_LIST --topic mytopic
 ```
 
 - Interactively listen for all events on a topic from the beginning (assuming a 3 node cluster for `broker-list` argument):
 
 ```
-$ ./kafka-console-consumer --bootstrap-server kafka-1:9092,kafka-2:9092,kafka-3:9092 --topic mytopic --from-beginning
+$ ./kafka-console-consumer --bootstrap-server $BROKER_LIST --topic mytopic --from-beginning
 ```
-
