@@ -40,7 +40,7 @@ $ kontena stack install
 To upgrade:
 
 ```
-$ kontena stack upgrade kafka-cluster
+$ kontena stack upgrade kafka-cluster kontena/kafka-cluster
 ```
 
 Other services inside your Kontena Grid can now connect to Kafka using the address `kafka.kafka-cluster.${GRID}.kontena.local:9092`.
