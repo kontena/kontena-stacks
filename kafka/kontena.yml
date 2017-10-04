@@ -1,6 +1,6 @@
 ---
 stack: kontena/kafka-cluster
-version: 1.0.3
+version: 1.0.4
 description: Kafka cluster based on Harvard Hypermap
 expose: kafka
 variables:
@@ -9,7 +9,7 @@ variables:
     default: true
     from:
       env: LINK_ZOOKEEPER
-      prompt: link zookeeper stack?
+      prompt: Link Zookeeper stack?
   zookeeper_link:
     type: string
     only_if: link_zookeeper
@@ -31,13 +31,13 @@ variables:
     default: 3
     from:
       env: NUM_INSTANCES
-      prompt: number of instances of Kafka?
+      prompt: Number of instances of Kafka?
   expose_kafka_port:
     type: boolean
     default: false
     from:
       env: EXPOSE_KAFKA_PORT
-      prompt: expose kafka port to host?
+      prompt: Expose Kafka port to host?
   skip_volumes:
     type: boolean
     default: false
@@ -78,7 +78,7 @@ services:
       # ***** Configure Broker list *****
       # {% assign broker_list = "" %}
       # {% for i in (1..num_instances) %}
-      # {%   capture broker %}kafka-{{ i }}:9092{% endcapture %}
+      # {%   capture broker %}kafka-{{ i }}.{{ STACK }}.{{ GRID }}.kontena.local:9092{% endcapture %}
       # {%   assign broker_list = broker_list | append: broker %}
       # {%   if i < num_instances %}
       # {%     assign broker_list = broker_list | append: "," %}
