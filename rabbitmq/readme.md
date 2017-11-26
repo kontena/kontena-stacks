@@ -9,6 +9,13 @@ RabbitMQ Cluster on Kontena
 
 Prerequisites: You need to have working Kontena Container Platform installed. If you are new to Kontena, check quick start guide.
 
+RabbitMQ is a stateful service, therefore you must first create a Kontena volume.  For a local volume run the following command:
+
+```
+$ kontena volume create --scope instance --driver local harbur-rabbitmq-cluster-seed-data
+$ kontena volume create --scope instance --driver local harbur-rabbitmq-cluster-node-data
+```
+
 $ kontena stack install kontena/harbur-rabbitmq-cluster
 
 This will deploy stateful RabbitMQ cluster to your grid. Other services can connect to it with amqp://harbur-rabbitmq-cluster.${GRID}.kontena.local address.
