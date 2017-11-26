@@ -1,8 +1,15 @@
 stack: kontena/harbur-rabbitmq-cluster
-version: 0.2.7
+version: 1.0.0
 description: RabbitMQ cluster based on harbur/rabbitmq-cluster image
 expose: node
 variables:
+  num_instances:
+    type: integer
+    min: 1
+    default: 3
+    from:
+      env: NUM_INSTANCES
+      prompt: number of nodes
   cookie:
     type: string
     from:
@@ -10,19 +17,54 @@ variables:
       random_string: 12
     to:
       vault: RABBITMQ_COOKIE
+  admin_user:
+    type: string
+    default: admin
+  admin_password:
+    type: string
+    from:
+      vault: ${STACK}-admin-user-password
+      random_string: 16
+    to:
+      vault: ${STACK}-admin-user-password
+  eventbus_vhost:
+    type: string
+    default: eventbus
+  eventbus_user:
+    type: string
+    default: eventbus_user
+  eventbus_password:
+    type: string
+    from:
+      vault: ${STACK}-eventbus-user-password
+      random_string: 16
+    to:
+      vault: ${STACK}-eventbus-user-password
+  eventbus_uri:
+    type: string
+    from:
+      vault: ${STACK}-eventbus-uri
+      interpolate: amqp://${eventbus_user}:${eventbus_password}@node.${STACK}.${GRID}.kontena.local/${eventbus_vhost}
+    to:
+      vault: ${STACK}-eventbus-uri
+
 services:
   seed:
     image: harbur/rabbitmq-cluster
     instances: 1
     stateful: true
+    volumes:
+      - rabbitmq-seed-data:/var/lib/rabbitmq
     secrets:
       - secret: RABBITMQ_COOKIE
         name: ERLANG_COOKIE
         type: env
   node:
     image: harbur/rabbitmq-cluster
-    instances: 2
+    instances: ${num_instances}
     stateful: true
+    volumes:
+      - rabbitmq-node-data:/var/lib/rabbitmq
     secrets:
       - secret: RABBITMQ_COOKIE
         name: ERLANG_COOKIE
@@ -31,3 +73,63 @@ services:
       - CLUSTER_WITH=seed-1
     depends_on:
       - seed
+    hooks:
+      post_start:
+        - name: sleep a bit
+          cmd: sleep 10
+          instances: 1
+        - name: create eventbus vhost
+          cmd: if [ $(rabbitmqctl list_vhosts | grep -c eventbus) -eq 0 ];
+                then rabbitmqctl add_vhost eventbus;
+                else echo "vhost 'eventbus'' already exists";
+               fi
+          instances: 1
+        - name: remove guest user
+          cmd: if [ $(rabbitmqctl list_users | grep -c guest) -eq 1 ];
+                then rabbitmqctl delete_user guest;
+                else echo "user 'guest' already removed";
+               fi
+          instances: 1
+        - name: create admin user
+          cmd: if [ $(rabbitmqctl list_users | grep -c admin) -eq 0 ];
+                then rabbitmqctl add_user admin ${admin_password};
+                else echo "user 'admin' already created";
+               fi
+          instances: 1
+        - name: set admin user permissions
+          cmd: rabbitmqctl set_user_tags admin administrator &&
+               rabbitmqctl clear_permissions admin &&
+               rabbitmqctl set_permissions admin ".*" ".*" ".*" &&
+               rabbitmqctl clear_permissions -p eventbus admin &&
+               rabbitmqctl set_permissions -p eventbus admin ".*" ".*" ".*";
+          instances: 1
+        - name: create eventbus user
+          cmd: if [ $(rabbitmqctl list_users | grep -c eventbus_user) -eq 0 ];
+                then rabbitmqctl add_user eventbus_user ${eventbus_password};
+               else echo "user 'eventbus' already created";
+               fi
+          instances: 1
+        - name: set eventbus user permissions
+          cmd: rabbitmqctl clear_permissions -p eventbus eventbus_user &&
+               rabbitmqctl set_permissions -p eventbus eventbus_user ".*" ".*" ".*"
+          instances: 1
+        - name: turn on HA for default vhost
+          cmd: if [ $(rabbitmqctl list_policies | grep -c ha-all) -eq 0 ];
+                 then rabbitmqctl set_policy ha-all ".*" '{"ha-mode":"all", "ha-sync-mode":"automatic"}';
+                 else echo "ha policy already set for default vhost";
+               fi
+          instances: 1
+        - name: turn on HA for eventbus vhost
+          cmd: if [ $(rabbitmqctl list_policies -p eventbus | grep -c ha-all) -eq 0 ];
+                 then rabbitmqctl set_policy -p eventbus ha-all ".*" '{"ha-mode":"all", "ha-sync-mode":"automatic"}';
+                 else echo "ha policy already set for eventbus vhost";
+               fi
+          instances: 1
+
+volumes:
+  rabbitmq-seed-data:
+    external:
+      name: ${STACK}-seed-data
+  rabbitmq-node-data:
+    external:
+      name: ${STACK}-node-data
