@@ -1,0 +1,73 @@
+stack: kontena/mongo-rs
+version: 0.2.0
+description: MongoDB 3.6 replica set (3 members)
+variables:
+  mem_limit:
+    type: integer
+    default: 1
+    from:
+      prompt: Memory limit (GB)
+  wtiger_cache:
+    type: string
+    from:
+      evaluate: ${mem_limit} / 2.0
+  key_file:
+    type: string
+    from:
+      vault: ${STACK}-keyfile
+      random_string: 64
+    to:
+      vault: ${STACK}-keyfile
+  admin_password:
+    type: string
+    from:
+      vault: ${STACK}-password
+      random_string: 18
+    to:
+      vault: ${STACK}-password
+
+services:
+  peer:
+    image: mongo:3.6
+    instances: 3
+    stateful: true
+    mem_limit: "{{ mem_limit }}g"
+    command: mongod --replSet ${STACK} --keyFile /data/mongo.key --wiredTigerCacheSizeGB {{ wtiger_cache }} --bind_ip 0.0.0.0
+    secrets:
+      - secret: ${STACK}-keyfile
+        name: MONGO_KEYFILE
+        type: env
+      - secret: ${STACK}-password
+        name: MONGO_ADMIN_PASSWORD
+        type: env
+    volumes:
+      - data:/data/db
+    deploy:
+      wait_for_port: 27017
+    health_check:
+      protocol: tcp
+      port: 27017
+      initial_delay: 60
+    hooks:
+      pre_start:
+        - cmd: echo $${MONGO_KEYFILE} > /data/mongo.key && chmod 600 /data/mongo.key && chown mongodb /data/mongo.key
+          name: keyfile
+          instances: '*'
+          oneshot: false
+      post_start:
+        - cmd: |
+            while ! (mongo --eval 'db.serverStatus()') >/dev/null 2>&1; do echo "waiting for mongo" && sleep 1; done
+            mongo --eval "printjson(rs.initiate({'_id': '${STACK}', 'members': [{'_id': 1, 'host': 'peer-3.${STACK}.${GRID}.kontena.local:27017'}, {'_id': 2, 'host': 'peer-2.${STACK}.${GRID}.kontena.local:27017'}, {'_id': 3, 'host': 'peer-1.${STACK}.${GRID}.kontena.local:27017'}]}));" admin
+          name: rs_initiate
+          instances: 3
+          oneshot: true
+        - cmd: |
+            while ! ( [ $(mongo --eval 'rs.status().myState' --quiet) -eq "1" ] ) ; do echo "waiting for replica set init" && sleep 1; done
+            mongo --eval "db.createUser({'user':'admin','pwd':\"$${MONGO_ADMIN_PASSWORD}\",'roles':[{'role':'root','db':'admin'}]});" admin
+          name: rs_add_admin
+          instances: 3
+          oneshot: true
+volumes:
+  data:
+    external:
+      name: ${STACK}-data
