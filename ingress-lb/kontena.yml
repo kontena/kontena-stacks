@@ -1,18 +1,18 @@
 stack: kontena/ingress-lb
-version: 0.1.0
+version: 0.2.0
 description: Generic ingress load balancer for http/https
 expose: lb
 variables:
   lb_affinity:
     type: string
-    default: label!=no-ingress-lb
+    default: label==~ingress-lb
     from:
       prompt: Affinity
   lb_certs:
     type: array
     required: false
     from:
-      vault_cert_prompt: Pick SSL cert(s) from Vault
+      certificates: Select SSL certificates
   lb_stats_password:
     type: string
     from:
@@ -29,9 +29,7 @@ services:
     image: kontena/lb:latest
     ports:
       - 80:80
-      # {% if lb_certs %}
       - 443:443
-      # {% endif %}
       # {% if lb_custom_ports %}
       # {% for port in lb_custom_ports %}
       - {{ port }}
@@ -55,10 +53,13 @@ services:
       - secret: LB_STATS_PASSWORD
         name: STATS_PASSWORD
         type: env
-      # {% if lb_certs %}
-      # {% for cert in lb_certs %}
-      - secret: {{ cert }}
-        name: SSL_CERTS
+    # {% if lb_certs.size > 0 %}
+    certificates:
+      # {% for subject in lb_certs %}
+      - subject: {{ subject }}
+        name: "SSL_CERT_{{ subject }}"
         type: env
       # {% endfor %}
-      # {% endif %}
+    # {% else %}
+    certificates: []
+    # {% endif %}
