@@ -1,31 +1,26 @@
 stack: kontena/cockroachdb
-version: 0.1.0
+version: 0.2.0
 description: CockroachDB is an open source, survivable, strongly consistent, scale-out SQL database.
 expose: lb
 variables:
-  bootstrap:
-    type: boolean
-    default: false
-    from:
-      prompt: Bootstrap new cluster?
   version:
     type: string
-    default: "1.0.3"
+    default: "1.1.3"
     from:
       prompt: Version
   cluster_size:
     type: integer
     default: 3
     from:
-      prompt: Cluster size
+      prompt: Cluster size (min 3)
   memory_limit:
     type: integer
-    default: 512
+    default: 1024
     from:
       prompt: Node memory limit (MB)
   affinity:
     type: string
-    default: label!=no-cockroach
+    default: label==~cockroach
     from:
       prompt: Affinity
   cache_size:
@@ -33,29 +28,11 @@ variables:
     from:
       evaluate: ${memory_limit} * 0.25
 services:
-  seed:
-    image: "cockroachdb/cockroach:v{{ version}}"
-    stateful: true
-    # {% if bootstrap %}
-    instances: 1
-    # {% else %}
-    instances: 0
-    # {% endif %}
-    command: "start --logtostderr --insecure --cache {{ cache_size }}MB"
-    mem_limit: "{{ memory_limit }}m"
-    affinity:
-      - {{ affinity }}
-    volumes:
-      - data:/cockroach/cockroach-data
   node:
     image: "cockroachdb/cockroach:v{{ version}}"
     stateful: true
     instances: {{ cluster_size }}
-    # {% if bootstrap %}
-    command: "start --logtostderr --insecure --cache {{ cache_size }}MB --join seed"
-    # {% else %}
-    command: "start --logtostderr --insecure --cache {{ cache_size }}MB --join node"
-    # {% endif %}
+    command: "start --logtostderr --insecure --cache {{ cache_size }}MB --max-sql-memory {{ cache_size }}MB --join node-1,node-2,node-3"
     mem_limit: "{{ memory_limit }}m"
     deploy:
       wait_for_port: 26257
@@ -67,11 +44,16 @@ services:
       KONTENA_LB_MODE: tcp
     health_check:
       protocol: tcp
+      initial_delay: 120
       port: 26257
+    hooks:
+      post_start:
+        - name: init
+          cmd: sleep 10 && /cockroach/cockroach init --insecure
+          instances: 1
+          oneshot: true
     volumes:
       - data:/cockroach/cockroach-data
-    depends_on:
-      - seed
     links:
       - lb
   lb:
