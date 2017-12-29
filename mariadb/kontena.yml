@@ -1,0 +1,84 @@
+stack: kontena/mariadb
+version: 0.2.1
+description: MariaDB is a community-developed fork of MySQL intended to remain free under the GNU GPL.
+expose: server
+variables:
+  root_password:
+    type: string
+    from:
+      vault: ${STACK}-root-password
+      random_string: 16
+    to:
+      vault: ${STACK}-root-password
+  user:
+    type: string
+    default: mariadb
+    from:
+      vault: ${STACK}-user
+      prompt: Username
+    to:
+      vault: ${STACK}-user
+  password:
+    type: string
+    from:
+      vault: ${STACK}-password
+      random_string: 16
+    to:
+      vault: ${STACK}-password
+  db:
+    type: string
+    default: mariadb
+    from:
+      vault: ${STACK}-database
+      prompt: Database name
+    to:
+      vault: ${STACK}-database
+  affinity:
+    type: string
+    default: label==~mariadb
+    from:
+      prompt: Affinity
+  mem_limit:
+    type: integer
+    default: 512
+    from:
+      prompt: Memory limit (MB)
+  innodb_buffer_pool_size:
+    type: string
+    from:
+      evaluate: ((${mem_limit} * 10) * 7) / 100
+services:
+  server:
+    image: mariadb:10.2
+    instances: 1
+    command: "mysqld --innodb-buffer-pool-size={{ innodb_buffer_pool_size }}M"
+    mem_limit: "{{ mem_limit }}m"
+    stateful: true
+    affinity:
+      - {{ affinity }}
+    deploy:
+      wait_for_port: 3306
+    health_check:
+      protocol: tcp
+      initial_delay: 120
+      port: 3306
+    stop_grace_period: 60s
+    secrets:
+      - secret: ${STACK}-root-password
+        name: MYSQL_ROOT_PASSWORD
+        type: env
+      - secret: ${STACK}-user
+        name: MYSQL_USER
+        type: env
+      - secret: ${STACK}-password
+        name: MYSQL_PASSWORD
+        type: env
+      - secret: ${STACK}-database
+        name: MYSQL_DATABASE
+        type: env
+    volumes:
+      - data:/var/lib/mysql
+volumes:
+  data:
+    external:
+      name: ${STACK}-data
