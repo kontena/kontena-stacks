@@ -1,5 +1,5 @@
 stack: kontena/mongo-rs
-version: 0.2.0
+version: 0.2.1
 description: MongoDB 3.6 replica set (3 members)
 variables:
   mem_limit:
@@ -32,7 +32,7 @@ services:
     instances: 3
     stateful: true
     mem_limit: "{{ mem_limit }}g"
-    command: mongod --replSet ${STACK} --keyFile /data/mongo.key --wiredTigerCacheSizeGB {{ wtiger_cache }} --bind_ip 0.0.0.0
+    command: mongod --replSet ${STACK} --keyFile /data/db/mongo.key --wiredTigerCacheSizeGB {{ wtiger_cache }} --bind_ip 0.0.0.0
     secrets:
       - secret: ${STACK}-keyfile
         name: MONGO_KEYFILE
@@ -50,7 +50,7 @@ services:
       initial_delay: 60
     hooks:
       pre_start:
-        - cmd: echo $${MONGO_KEYFILE} > /data/mongo.key && chmod 600 /data/mongo.key && chown mongodb /data/mongo.key
+        - cmd: echo $${MONGO_KEYFILE} > /data/db/mongo.key && chmod 600 /data/db/mongo.key && chown mongodb /data/db/mongo.key
           name: keyfile
           instances: '*'
           oneshot: false
