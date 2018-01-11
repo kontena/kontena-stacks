@@ -1,5 +1,5 @@
 stack: kontena/fluentd-elasticsearch
-version: 0.1.0
+version: 0.1.1
 description: Fluent forwarding to Elasticsearch
 variables:
   host:
@@ -7,6 +7,16 @@ variables:
     default: elasticsearch.${GRID}.kontena.local
     from:
       prompt: Elasticsearch host
+  port:
+    type: integer
+    default: 9200
+    from:
+      prompt: Elasticsearch port
+  scheme:
+    type: string
+    default: http
+    from:
+      prompt: Elasticsearch URL scheme
   user:
     type: string
     default: elastic
@@ -19,6 +29,8 @@ services:
     environment:
       ELASTIC_USER: {{ user }}
       ELASTIC_HOST: {{ host }}
+      ELASTIC_PORT: {{ port }}
+      ELASTIC_SCHEME: {{ scheme }}
     ports:
       - 24224:24224
     deploy:
